@@ -64,16 +64,16 @@ char** tokenize(char* cmdline) {
     arglist[argnum] = NULL;
     return arglist;
 }
-<<<<<<< HEAD
-=======
 int handle_builtin(char** arglist){
     const char* path=arglist[1];
     char* helpc []={"cd : Helps to change directory",
         "exit : Used to terminate the shell gracefully",
-        "jobs : Used to show all the background and stopped jobs "};
-    char* builtin []={"cd","jobs","help","exit"};
-    for (int i = 0; i < 4; i++) {
-        if (strcmp(arglist[0],builtin[i])==0){
+        "jobs : Used to show all the background and stopped jobs ",
+        "history : To display the command history"};
+    char* builtin []={"cd","jobs","help","exit","history"};
+    int builtin_size = sizeof(builtin) / sizeof(builtin[0]);
+    for (int j = 0; j < builtin_size; j++) {
+        if (strcmp(arglist[0],builtin[j])==0){
             if (strcmp(arglist[0],"cd")==0){
                 if (path==NULL || strcmp(path,"~")==0){
                     path=getenv("HOME");
@@ -91,10 +91,15 @@ int handle_builtin(char** arglist){
                     printf("%s\n",helpc[i]);
                 }
                 return 1;
-
             }
             else if (strcmp(arglist[0], "jobs") == 0) {
                 printf("Job control not yet implemented.\n");
+                return 1;
+            }
+            else if (strcmp(arglist[0], "history") == 0) {
+                for (int c = 0; c < curr_count; c++) {
+                    printf("%d  %s\n", c + 1, history[c]);
+                }
                 return 1;
             }
         }
@@ -102,4 +107,3 @@ int handle_builtin(char** arglist){
     return 0;
 }
         
->>>>>>> feature-built-ins

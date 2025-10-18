@@ -13,6 +13,9 @@
 #define MAXARGS 10
 #define ARGLEN 30
 #define PROMPT "AREESHA> "
+#define HISTORY_SIZE 25
+extern char* history[HISTORY_SIZE];
+extern int curr_count;
 
 
 // Function prototypes
