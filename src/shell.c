@@ -1,7 +1,9 @@
 #include "shell.h"
 
 char* read_cmd(char* prompt, FILE* fp) {
-    printf("%s", prompt);
+    char cwd[1024];
+    getcwd(cwd, sizeof(cwd));
+    printf("%s%s> ", prompt, strrchr(cwd, '/') ? strrchr(cwd, '/') + 1 : cwd);
     char* cmdline = (char*) malloc(sizeof(char) * MAX_LEN);
     int c, pos = 0;
 
