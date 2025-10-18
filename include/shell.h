@@ -12,15 +12,13 @@
 #define MAX_LEN 512
 #define MAXARGS 10
 #define ARGLEN 30
-<<<<<<< HEAD
 #define PROMPT "AREESHA> "
-=======
-#define PROMPT "AREESHA> "
->>>>>>> 5f705a10cdc9f4b8896b0387c2d5ea6cf59fc0ab
+
 
 // Function prototypes
 char* read_cmd(char* prompt, FILE* fp);
 char** tokenize(char* cmdline);
 int execute(char** arglist);
+int handle_builtin(char** arglist);
 
 #endif // SHELL_H
