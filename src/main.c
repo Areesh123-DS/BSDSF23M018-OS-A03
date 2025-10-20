@@ -16,6 +16,9 @@ int main() {
             free(cmdline);
             continue;
         }
+        if (curr_count < HISTORY_SIZE) {
+            history[curr_count++] = strdup(cmdline);
+        }
            
         if ((arglist = tokenize(cmdline)) != NULL) {
 
@@ -33,6 +36,8 @@ int main() {
     }
 
     printf("\nShell exited.\n");
+    for (int i = 0; i < curr_count; i++)
+        free(history[i]);
     clear_history();
 
     return 0;
