@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <fcntl.h>
 
 #define MAX_LEN 512
 #define MAXARGS 10
@@ -18,6 +19,16 @@
 #define HISTORY_SIZE 25
 extern char* history[HISTORY_SIZE];
 extern int curr_count;
+typedef struct {
+    char **args;        
+    char *input_file;   
+    char *output_file;  
+    char *pipe_cmd;     
+    int has_input;
+    int has_output;
+    int has_pipe;
+} RedirectInfo;
+extern RedirectInfo cmd_info;
 
 
 // Function prototypes
