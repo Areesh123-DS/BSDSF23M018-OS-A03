@@ -1,0 +1,5 @@
+total 16
+-rw-r--r-- 1 hpareesh_33- hpareesh_33- 2161 Oct 20 20:23 execute.c
+-rw-r--r-- 1 hpareesh_33- hpareesh_33-    0 Oct 20 20:31 fileout.txt
+-rw-r--r-- 1 hpareesh_33- hpareesh_33-  916 Oct 20 20:30 main.c
+-rw-r--r-- 1 hpareesh_33- hpareesh_33- 4664 Oct 20 20:30 shell.c
