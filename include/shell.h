@@ -29,6 +29,10 @@ typedef struct {
     int has_output;
     int has_pipe;
     int is_background; 
+    int is_if_block;
+    char* if_line;      
+    char* then_block;     
+    char* else_block;
 } RedirectInfo;
 extern RedirectInfo cmd_info;
 typedef struct {

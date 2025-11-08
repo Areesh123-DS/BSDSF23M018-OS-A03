@@ -6,9 +6,6 @@ int curr_count = 0;
 
 int main() {
     char* cmdline;
-    char** arglist;
-    int replace_index=0;
-    
 
     while (1) {
     
@@ -37,6 +34,39 @@ int main() {
             free(cmdline);
             continue;
         }
+        if (strncmp(cmdline, "if", 2) == 0) {
+            char* then_buff = malloc(4096); then_buff[0] = '\0';
+            char* else_buff = malloc(4096); else_buff[0] = '\0';
+            char* curr_block = NULL;
+
+        cmd_info.is_if_block = 1;
+        cmd_info.if_line = strdup(cmdline); // store if command
+
+        while (1) {
+            char* next_line = readline("> ");
+            if (!next_line) break;
+
+            if (strncmp(next_line, "then", 4) == 0) {
+                curr_block = then_buff;
+                continue;
+            }
+            if (strncmp(next_line, "else", 4) == 0) {
+                curr_block = else_buff;
+                continue;
+            }
+            if (strncmp(next_line, "fi", 2) == 0) break;
+
+            if (curr_block) {
+                strcat(curr_block, next_line);
+                strcat(curr_block, ";");
+            }
+            free(next_line);
+        }
+
+        cmd_info.then_block = then_buff;
+        cmd_info.else_block = else_buff;
+    }
+
 
         if (curr_count < HISTORY_SIZE)
             history[curr_count++] = strdup(cmdline);

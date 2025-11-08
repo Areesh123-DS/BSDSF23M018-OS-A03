@@ -19,9 +19,45 @@ char* read_cmd(char* prompt, FILE* fp) {
         free(cmdline);
         return NULL;
     }
+    if (strncmp(cmdline, "if", 2) == 0) {
+    char line[256];
+    char* then_buff = malloc(1024);
+    char* else_buff = malloc(1024);
+    then_buff[0] = '\0';
+    else_buff[0] = '\0';
+
+    char* curr_blk = NULL;
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (strncmp(line, "then", 4) == 0) {
+            curr_blk = then_buff;
+            continue;
+        } 
+        else if (strncmp(line, "else", 4) == 0) {
+            curr_blk = else_buff;
+            continue;
+        } 
+        else if (strncmp(line, "fi", 2) == 0) {
+            break;
+        }
+
+        if (curr_blk) {
+            strcat(curr_blk, line); // append the line to the current block
+        }
+    }
+
+    // Store for later use in cmd_info
+    cmd_info.is_if_block = 1;
+    cmd_info.then_block = then_buff;
+    cmd_info.else_block = else_buff;
+    } 
+    else {
+        cmd_info.is_if_block = 0;
+    }
     
     cmdline[pos] = '\0';
     return cmdline;
+
 }
 
 char** split_commands(char* line, int* count) {

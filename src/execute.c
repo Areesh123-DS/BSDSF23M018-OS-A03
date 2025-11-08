@@ -3,6 +3,49 @@
 int execute(char* arglist[]) {
     int status;
 
+    if (cmd_info.is_if_block) {
+        int status_if = 0;
+
+        char **args_if = tokenize(cmd_info.if_line);
+        if (args_if != NULL) {
+            pid_t pid = fork();
+            if (pid == 0) {
+                execvp(args_if[0], args_if);
+                perror("Command not found");
+                exit(1);
+            } else {
+                waitpid(pid, &status_if, 0);
+            }
+            for (int i = 0; args_if[i] != NULL; i++) free(args_if[i]);
+            free(args_if);
+        }
+
+        char* block = (WEXITSTATUS(status_if) == 0) ? cmd_info.then_block : cmd_info.else_block;
+        if (block && block[0] != '\0') {
+            int n;
+            char** cmds = split_commands(block, &n);
+            for (int i = 0; i < n; i++) {
+                char** args = tokenize(cmds[i]);
+                if (args) {
+                    execute(args);
+                    for (int j = 0; args[j] != NULL; j++) free(args[j]);
+                    free(args);
+                }
+                free(cmds[i]);
+            }
+            free(cmds);
+        }
+
+        free(cmd_info.if_line);
+        free(cmd_info.then_block);
+        free(cmd_info.else_block);
+        cmd_info.is_if_block = 0;
+        return 0; // skip normal execution
+    }
+
+
+
+   
     if (cmd_info.has_pipe) {
         int pipefd[2];
         if (pipe(pipefd) == -1) {
