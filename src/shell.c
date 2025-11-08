@@ -1,5 +1,7 @@
 #include "shell.h"
 RedirectInfo cmd_info;
+Job bg_jobs[MAX_BG_JOBS];
+int bg_count=0;
 
 char* read_cmd(char* prompt, FILE* fp) {
     char cwd[1024];
@@ -15,24 +17,94 @@ char* read_cmd(char* prompt, FILE* fp) {
 
     if (c == EOF && pos == 0) {
         free(cmdline);
-        return NULL; // Handle Ctrl+D
+        return NULL;
     }
     
     cmdline[pos] = '\0';
     return cmdline;
 }
 
-      
+char** split_commands(char* line, int* count) {
+    int capacity = 10;
+    char** cmds = malloc(sizeof(char*) * capacity);
+    *count = 0;
 
+    char* start = line;
+    char* cp = line;
+
+    while (*cp != '\0') {
+        if (*cp == ';') {
+            int len = cp - start;
+            cmds[*count] = (char*)malloc(len + 1);
+            strncpy(cmds[*count], start, len);
+            cmds[*count][len] = '\0';
+            (*count)++;
+            if (*count >= capacity) {
+                capacity *= 2;
+                cmds = realloc(cmds, sizeof(char*) * capacity);
+            }
+            cp++;
+            while (*cp == ' ' || *cp == '\t') cp++; // skip spaces after ;
+            start = cp;
+        } else {
+            cp++;
+        }
+    }
+
+    // Add the last command
+    if (cp != start) {
+        int len = cp - start;
+        cmds[*count] = (char*)malloc(len + 1);
+        strncpy(cmds[*count], start, len);
+        cmds[*count][len] = '\0';
+        (*count)++;
+    }
+
+    return cmds;
+}     
 char** tokenize(char* cmdline) {
-    // Edge case: empty command line
-    if (cmdline == NULL || cmdline[0] == '\0' || cmdline[0] == '\n')
-        return NULL;
+    static char* next_cmd_start = NULL;
+
+    if (cmdline != NULL) next_cmd_start = cmdline;
+    if (next_cmd_start == NULL || *next_cmd_start == '\0') return NULL;
+
+    // Find next semicolon
+    char* semicolon = next_cmd_start;
+    while (*semicolon != '\0' && *semicolon != ';') semicolon++;
+
+    // Calculate length of the single command
+    int cmd_len = semicolon - next_cmd_start;
+
+    while (cmd_len > 0 && (*next_cmd_start == ' ' || *next_cmd_start == '\t')) {
+        next_cmd_start++;
+        cmd_len--;
+    }
+
+    // Trim trailing spaces
+    while (cmd_len > 0 && next_cmd_start[cmd_len - 1] == ' ') cmd_len--;
+
+    // Copy the single command for parsing
+    char* single_cmd = strndup(next_cmd_start, cmd_len);
+
+    // Move pointer for next call
+    next_cmd_start = (*semicolon == ';') ? semicolon + 1 : semicolon;
+    cmd_info.is_background = 0;
+    int arg_len = strlen(single_cmd);
+    if (arg_len > 0 && single_cmd[arg_len - 1] == '&') {
+        cmd_info.is_background = 1;
+        single_cmd[arg_len - 1] = '\0'; 
+    }
+    else {
+        cmd_info.is_background = 0;
+    }
+
+    // Edge case: empty command
+    if (single_cmd == NULL || single_cmd[0] == '\0') return NULL;
 
     char** arglist = (char**)malloc(sizeof(char*) * (MAXARGS + 1));
     for (int i = 0; i < MAXARGS + 1; i++) {
         arglist[i] = (char*)malloc(sizeof(char) * ARGLEN);
-        bzero(arglist[i], ARGLEN);
+        memset(arglist[i], 0, ARGLEN);
     }
 
     cmd_info.input_file = NULL;
@@ -40,7 +112,7 @@ char** tokenize(char* cmdline) {
     cmd_info.pipe_cmd = NULL;
     cmd_info.has_input = cmd_info.has_output = cmd_info.has_pipe = 0;
 
-    char* cp = cmdline;
+    char* cp = single_cmd;
     char* start;
     int len;
     int argnum = 0;
@@ -97,11 +169,14 @@ char** tokenize(char* cmdline) {
     if (argnum == 0) { // empty command
         for (int i = 0; i < MAXARGS + 1; i++) free(arglist[i]);
         free(arglist);
+        free(single_cmd);
         return NULL;
     }
 
     arglist[argnum] = NULL; // NULL-terminate the list
     cmd_info.args = arglist;
+    free(single_cmd);
+
     return arglist;
 }
 
@@ -133,16 +208,28 @@ int handle_builtin(char** arglist){
                 }
                 return 1;
             }
-            else if (strcmp(arglist[0], "jobs") == 0) {
-                printf("Job control not yet implemented.\n");
-                return 1;
-            }
             else if (strcmp(arglist[0], "history") == 0) {
                 for (int c = 0; c < curr_count; c++) {
                     printf("%d  %s\n", c + 1, history[c]);
                 }
                 return 1;
             }
+            else if (strcmp(arglist[0], "jobs") == 0) {
+                if (bg_count == 0) {
+                    printf("No background jobs.\n");}   
+                else {
+                    for (int i = 0; i < bg_count; i++) {
+                        char sign;
+                        if (i == bg_count - 1) {
+                            sign = '+';}
+                        else {
+                            sign = '-';
+                        }
+                        printf("[%d]%c  Running                 %s &\n", i + 1,sign, bg_jobs[i].cmd);
+                    }
+                }
+            }
+            return 1;
         }
     }
     return 0;

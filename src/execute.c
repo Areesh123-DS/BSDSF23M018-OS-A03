@@ -11,7 +11,7 @@ int execute(char* arglist[]) {
         }
     pid_t left_pid = fork();
         if (left_pid == 0) {
-            dup2(pipefd[1], STDOUT_FILENO); // Redirect stdout to pipe write end
+            dup2(pipefd[1], 1); // Redirect stdout to pipe write end
             close(pipefd[0]); // Close read end
             close(pipefd[1]);
 
@@ -23,7 +23,7 @@ int execute(char* arglist[]) {
     pid_t right_pid = fork();
     if (right_pid == 0) {
         // Right child → Reader
-        dup2(pipefd[0], STDIN_FILENO); // Redirect stdin to pipe read end
+        dup2(pipefd[0], 0); // Redirect stdin to pipe read end
         close(pipefd[0]);
         close(pipefd[1]);
 
@@ -73,10 +73,22 @@ int execute(char* arglist[]) {
         exit(1);
     }
     default: // Parent process
-        waitpid(cpid, &status, 0);
-        // printf("Child pid:%d exited with status %d\n", cpid, status >> 8);
-        return 0;
+        if (!cmd_info.is_background) {
+            waitpid(cpid, &status, 0);
+        } else {
+            if (bg_count < MAX_BG_JOBS) {
+                bg_jobs[bg_count].pid = cpid;
+                bg_jobs[bg_count].cmd = strdup(cmd_info.args[0]);
+                bg_jobs[bg_count].job_num = bg_count + 1;
+                bg_jobs[bg_count].running = 1;
+                printf("[%d] %d\n", bg_jobs[bg_count].job_num, cpid); // like real shell
+                bg_count++;
+            } else {
+                printf("Background job limit reached.\n");
+            }
+        }
     }
+        return 0;
 }
 
 

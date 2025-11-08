@@ -14,6 +14,7 @@
 
 #define MAX_LEN 512
 #define MAXARGS 10
+#define MAX_BG_JOBS 50
 #define ARGLEN 30
 #define PROMPT "AREESHA> "
 #define HISTORY_SIZE 25
@@ -27,8 +28,18 @@ typedef struct {
     int has_input;
     int has_output;
     int has_pipe;
+    int is_background; 
 } RedirectInfo;
 extern RedirectInfo cmd_info;
+typedef struct {
+    pid_t pid;
+    char* cmd;
+    int job_num;
+    int running;
+} Job;
+
+extern Job bg_jobs[MAX_BG_JOBS];
+extern int bg_count;
 
 
 // Function prototypes
@@ -36,5 +47,6 @@ char* read_cmd(char* prompt, FILE* fp);
 char** tokenize(char* cmdline);
 int execute(char** arglist);
 int handle_builtin(char** arglist);
+char** split_commands(char* line, int* count);
 
 #endif // SHELL_H
