@@ -2,64 +2,23 @@
 RedirectInfo cmd_info;
 Job bg_jobs[MAX_BG_JOBS];
 int bg_count=0;
+Var *vars_head = NULL;
 
 char* read_cmd(char* prompt, FILE* fp) {
-    char cwd[1024];
-    getcwd(cwd, sizeof(cwd));
-    printf("%s%s> ", prompt, strrchr(cwd, '/') ? strrchr(cwd, '/') + 1 : cwd);
-    char* cmdline = (char*) malloc(sizeof(char) * MAX_LEN);
-    int c, pos = 0;
-
-    while ((c = getc(fp)) != EOF) {
-        if (c == '\n') break;
-        cmdline[pos++] = c;
+    if (fp == stdin) { 
+        char* cmdline = readline(prompt);
+        if (cmdline && cmdline[0] != '\0')
+            add_history(cmdline);
+        return cmdline;
     }
 
-    if (c == EOF && pos == 0) {
+    char* cmdline = malloc(MAX_LEN);
+    if (!fgets(cmdline, MAX_LEN, fp)) {
         free(cmdline);
         return NULL;
     }
-    if (strncmp(cmdline, "if", 2) == 0) {
-    char line[256];
-    char* then_buff = malloc(1024);
-    char* else_buff = malloc(1024);
-    then_buff[0] = '\0';
-    else_buff[0] = '\0';
-
-    char* curr_blk = NULL;
-
-    while (fgets(line, sizeof(line), fp)) {
-        if (strncmp(line, "then", 4) == 0) {
-            curr_blk = then_buff;
-            continue;
-        } 
-        else if (strncmp(line, "else", 4) == 0) {
-            curr_blk = else_buff;
-            continue;
-        } 
-        else if (strncmp(line, "fi", 2) == 0) {
-            break;
-        }
-
-        if (curr_blk) {
-            strcat(curr_blk, line); // append the line to the current block
-        }
-    }
-
-    // Store for later use in cmd_info
-    cmd_info.is_if_block = 1;
-    cmd_info.then_block = then_buff;
-    cmd_info.else_block = else_buff;
-    } 
-    else {
-        cmd_info.is_if_block = 0;
-    }
-    
-    cmdline[pos] = '\0';
     return cmdline;
-
 }
-
 char** split_commands(char* line, int* count) {
     int capacity = 10;
     char** cmds = malloc(sizeof(char*) * capacity);
@@ -201,6 +160,23 @@ char** tokenize(char* cmdline) {
             argnum++; // only increment for normal arguments
         }
     }
+    
+        
+    arglist[argnum] = NULL;
+    cmd_info.args = arglist;
+
+    for (int i = 0; i < argnum; i++) {
+        if (arglist[i][0] == '$' && arglist[i][1] != '\0') {
+           
+            char *val = get_var(arglist[i] + 1);
+            free(arglist[i]);           
+            if (val != NULL) {
+                arglist[i] = strdup(val);   
+            } else {
+                arglist[i] = strdup("");    
+            }
+        }
+    }
 
     if (argnum == 0) { // empty command
         for (int i = 0; i < MAXARGS + 1; i++) free(arglist[i]);
@@ -216,13 +192,79 @@ char** tokenize(char* cmdline) {
     return arglist;
 }
 
+void set_var(const char *name, const char *value) {
+    if (name == NULL) return;
+
+    Var *p = vars_head;
+
+    while (p != NULL) {
+        if (strcmp(p->name, name) == 0) {
+            free(p->value);
+
+            if (value != NULL)
+                p->value = strdup(value);
+            else
+                p->value = strdup("");
+
+            return;
+        }
+        p = p->next;
+    }
+
+    Var *n = malloc(sizeof(Var));
+    if (n == NULL) return;
+
+    n->name = strdup(name);
+
+    if (value != NULL)
+        n->value = strdup(value);
+    else
+        n->value = strdup("");
+
+    n->next = vars_head;
+    vars_head = n;
+}
+
+char *get_var(const char *name) {
+    if (name == NULL) return NULL;
+
+    Var *p = vars_head;
+    while (p != NULL) {
+        if (strcmp(p->name, name) == 0)
+            return p->value;
+        p = p->next;
+    }
+    return NULL;
+}
+
+void print_vars(void) {
+    Var *p = vars_head;
+    while (p != NULL) {
+        printf("%s=%s\n", p->name, p->value);
+        p = p->next;
+    }
+}
+void free_vars(void) {
+    Var *p = vars_head;
+    while (p) {
+        Var *next = p->next;
+        free(p->name);
+        free(p->value);
+        free(p);
+        p = next;
+    }
+    vars_head = NULL;
+}
+
+
 int handle_builtin(char** arglist){
     const char* path=arglist[1];
     char* helpc []={"cd : Helps to change directory",
         "exit : Used to terminate the shell gracefully",
         "jobs : Used to show all the background and stopped jobs ",
-        "history : To display the command history"};
-    char* builtin []={"cd","jobs","help","exit","history"};
+        "history : To display the command history",
+        "set : To display the variables"};
+    char* builtin []={"cd","jobs","help","exit","history","set"};
     int builtin_size = sizeof(builtin) / sizeof(builtin[0]);
     for (int j = 0; j < builtin_size; j++) {
         if (strcmp(arglist[0],builtin[j])==0){
@@ -248,6 +290,10 @@ int handle_builtin(char** arglist){
                 for (int c = 0; c < curr_count; c++) {
                     printf("%d  %s\n", c + 1, history[c]);
                 }
+                return 1;
+            }
+            else if (strcmp(arglist[0], "set") == 0) {
+                print_vars();
                 return 1;
             }
             else if (strcmp(arglist[0], "jobs") == 0) {
