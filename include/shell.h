@@ -35,6 +35,13 @@ typedef struct {
     char* else_block;
 } RedirectInfo;
 extern RedirectInfo cmd_info;
+typedef struct Var {
+    char *name;
+    char *value;
+    struct Var *next;
+} Var;
+
+extern Var *vars_head;
 typedef struct {
     pid_t pid;
     char* cmd;
@@ -52,5 +59,8 @@ char** tokenize(char* cmdline);
 int execute(char** arglist);
 int handle_builtin(char** arglist);
 char** split_commands(char* line, int* count);
+void set_var(const char *name, const char *value);
+char *get_var(const char *name); 
+void print_vars(void);
 
 #endif // SHELL_H

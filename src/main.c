@@ -34,6 +34,15 @@ int main() {
             free(cmdline);
             continue;
         }
+
+        char* eq = strchr(cmdline, '=');
+        if (eq && eq != cmdline && *(eq-1) != ' ' && *(eq+1) != ' ') {
+            *eq = '\0';
+            set_var(cmdline, eq + 1);
+            free(cmdline);
+            continue;
+        }
+
         if (strncmp(cmdline, "if", 2) == 0) {
             char* then_buff = malloc(4096); then_buff[0] = '\0';
             char* else_buff = malloc(4096); else_buff[0] = '\0';
