@@ -263,7 +263,7 @@ int handle_builtin(char** arglist){
         "exit : Used to terminate the shell gracefully",
         "jobs : Used to show all the background and stopped jobs ",
         "history : To display the command history",
-        "set : To display the variables"};
+        "set : To display the variables in the list"};
     char* builtin []={"cd","jobs","help","exit","history","set"};
     int builtin_size = sizeof(builtin) / sizeof(builtin[0]);
     for (int j = 0; j < builtin_size; j++) {
